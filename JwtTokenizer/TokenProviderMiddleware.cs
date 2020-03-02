@@ -27,12 +27,11 @@ namespace JwtTokenizer
         public TokenProviderMiddleware(
             RequestDelegate next,
             IOptions<TokenProviderOptions> options,
-            ILoggerFactory loggerFactory,
-            JwtService jwtService)
+            ILoggerFactory loggerFactory)
         {
             _next = next;
             _logger = loggerFactory.CreateLogger<TokenProviderMiddleware>();
-            _jwtService = jwtService;
+            _jwtService = new JwtService(options, loggerFactory);
 
             _options = options.Value;
             JwtHelper.ThrowIfInvalidOptions(_options);
