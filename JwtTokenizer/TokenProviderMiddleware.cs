@@ -6,6 +6,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JwtTokenizer
@@ -19,14 +20,14 @@ namespace JwtTokenizer
     public class TokenProviderMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly TokenProviderOptions _options;
+        private readonly TokenProviderOptionsWithIdentifier _options;
         private readonly ILogger _logger;
         private readonly JsonSerializerSettings _serializerSettings;
         private readonly JwtService _jwtService;
 
         public TokenProviderMiddleware(
             RequestDelegate next,
-            IOptions<TokenProviderOptions> options,
+            IOptions<TokenProviderOptionsWithIdentifier> options,
             ILoggerFactory loggerFactory)
         {
             _next = next;
@@ -35,6 +36,11 @@ namespace JwtTokenizer
 
             _options = options.Value;
             JwtHelper.ThrowIfInvalidOptions(_options);
+
+            if (_options.IdentityResolver == null)
+            {
+                throw new ArgumentNullException("IdentityResolver");
+            }
 
             _serializerSettings = new JsonSerializerSettings
             {
@@ -72,15 +78,17 @@ namespace JwtTokenizer
             if (identity == null)
             {
                 context.Response.StatusCode = 400;
-                await context.Response.WriteAsync("Invalid username or password.");
+                await context.Response.WriteAsync("Invalid username or password.", new CancellationToken());
                 return;
             }
+            else
+            {
+                TokenResultDto response = await _jwtService.Prepare(identity, username);
 
-            var response = await _jwtService.Prepare(identity, username);
-
-            // Serialize and return the response
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonConvert.SerializeObject(response, _serializerSettings));
+                // Serialize and return the response
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonConvert.SerializeObject(response, _serializerSettings), new CancellationToken());
+            }
         }
     }
 }

@@ -1,6 +1,9 @@
 using JwtTokenizer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace Microsoft.AspNetCore.Builder
 {
@@ -11,22 +14,33 @@ namespace Microsoft.AspNetCore.Builder
     {
         /// <summary>
         /// Adds the <see cref="TokenProviderMiddleware"/> middleware to the specified <see cref="IApplicationBuilder"/>, which enables token generation capabilities.
+        /// </summary>
         /// <param name="app">The <see cref="IApplicationBuilder"/> to add the middleware to.</param>
-        /// <param name="options">A  <see cref="TokenProviderOptions"/> that specifies options for the middleware.</param>
+        /// <param name="configure"></param>
         /// <returns>A reference to this instance after the operation has completed.</returns>
-        public static IApplicationBuilder UseSimpleTokenProvider(this IApplicationBuilder app, TokenProviderOptions options)
+        public static IApplicationBuilder UseJwtTokenizer(this IApplicationBuilder app, Func<Func<string, string, Task<ClaimsIdentity>>> configure)
         {
-            if (app == null)
+            using (IServiceScope scope = app.ApplicationServices.CreateScope())
             {
-                throw new ArgumentNullException(nameof(app));
-            }
+                IServiceProvider serviceProvider = scope.ServiceProvider;
+                Func<string, string, Task<ClaimsIdentity>> func = configure();
+                TokenProviderOptions tokenProviderOptions = serviceProvider.GetService<IOptions<TokenProviderOptions>>().Value;
 
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+                TokenProviderOptionsWithIdentifier optionsWithIdentifier = new TokenProviderOptionsWithIdentifier
+                {
+                    Audience = tokenProviderOptions.Audience,
+                    Expiration = tokenProviderOptions.Expiration,
+                    Issuer = tokenProviderOptions.Issuer,
+                    NonceGenerator = tokenProviderOptions.NonceGenerator,
+                    Path = tokenProviderOptions.Path,
+                    SigningCredentials = tokenProviderOptions.SigningCredentials,
+                    IdentityResolver = func
+                };
 
-            return app.UseMiddleware<TokenProviderMiddleware>(Options.Create(options));
+                TokenProviderOptionsWithIdentifier options = optionsWithIdentifier;
+
+                return app.UseMiddleware<TokenProviderMiddleware>(Options.Create(options));
+            }
         }
     }
 }

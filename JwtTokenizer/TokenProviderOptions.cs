@@ -38,11 +38,6 @@ namespace JwtTokenizer
         public SigningCredentials SigningCredentials { get; set; }
 
         /// <summary>
-        /// Resolves a user identity given a username and password.
-        /// </summary>
-        public Func<string, string, Task<ClaimsIdentity>> IdentityResolver { get; set; }
-
-        /// <summary>
         /// Generates a random value (nonce) for each generated token.
         /// </summary>
         /// <remarks>The default nonce is a random GUID.</remarks>
