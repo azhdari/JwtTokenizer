@@ -30,11 +30,6 @@ namespace JwtTokenizer
                 throw new ArgumentException("Must be a non-zero TimeSpan.", nameof(TokenProviderOptions.Expiration));
             }
 
-            if (options.IdentityResolver == null)
-            {
-                throw new ArgumentNullException(nameof(TokenProviderOptions.IdentityResolver));
-            }
-
             if (options.SigningCredentials == null)
             {
                 throw new ArgumentNullException(nameof(TokenProviderOptions.SigningCredentials));
